@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (uncomment if you don't want to track large data files)
+# *.xlsx
+# *.csv
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Models and cached data
+*.pkl
+*.pickle
+models/*.pkl
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Claude
+.claude/
