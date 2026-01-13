@@ -131,11 +131,7 @@ for key, config in REQUIRED_FILES.items():
                 else:
                     # Store in session state
                     st.session_state[config['session_key']] = df
-                    st.success(f"Bestand succesvol geladen: {len(df)} rijen")
-
-                    # Show preview
-                    with st.expander("Preview data"):
-                        st.dataframe(df.head(10), use_container_width=True)
+                    st.rerun()  # Force immediate status update
 
             except Exception as e:
                 st.error(f"Fout bij laden: {str(e)}")
