@@ -17,9 +17,10 @@ if not sys.warnoptions:
 warnings.filterwarnings('ignore')
 
 # Import utilities
-from utils.data_loader import get_master_view
+from utils.data_loader import get_master_view, is_data_uploaded, show_upload_required
 from utils.ml_model import get_trained_model, find_similar_checks
 from utils.plotly_utils import hide_warnings_css
+from utils import format_currency
 
 # Hide warnings with CSS
 hide_warnings_css()
@@ -27,6 +28,10 @@ hide_warnings_css()
 # Page config
 st.title("Material Prediction")
 st.markdown("Predict material requirements for future C-checks")
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    show_upload_required()
 
 # Load data and model
 with st.spinner("Loading model and data..."):
@@ -150,42 +155,45 @@ if predict_button:
 
     if prediction:
         # Display prediction
-        col1, col2, col3 = st.columns(3)
+        with st.container(border=True):
+            col1, col2, col3 = st.columns(3)
 
-        with col1:
-            st.metric(
-                "Predicted Parts Count",
-                f"{prediction['prediction']}",
-                delta=f"Range: {prediction['ci_lower']}-{prediction['ci_upper']}"
-            )
+            with col1:
+                st.metric(
+                    "Predicted Parts Count",
+                    f"{prediction['prediction']}",
+                    delta=f"Range: {prediction['ci_lower']}-{prediction['ci_upper']}"
+                )
 
-        with col2:
-            # Estimate cost (based on historical average cost per part)
-            avg_cost_per_part = master_df[
-                (master_df['is_c_check'] == 1) &
-                (master_df['consumed_parts_count'].notna()) &
-                (master_df['consumed_cost'].notna())
-            ]['consumed_cost'].mean() / master_df[
-                (master_df['is_c_check'] == 1) &
-                (master_df['consumed_parts_count'].notna())
-            ]['consumed_parts_count'].mean()
+            with col2:
+                # Estimate cost (based on historical average cost per part)
+                avg_cost_per_part = master_df[
+                    (master_df['is_c_check'] == 1) &
+                    (master_df['consumed_parts_count'].notna()) &
+                    (master_df['consumed_cost'].notna())
+                ]['consumed_cost'].mean() / master_df[
+                    (master_df['is_c_check'] == 1) &
+                    (master_df['consumed_parts_count'].notna())
+                ]['consumed_parts_count'].mean()
 
-            estimated_cost = prediction['prediction'] * avg_cost_per_part
+                estimated_cost = prediction['prediction'] * avg_cost_per_part
 
-            st.metric(
-                "Estimated Total Cost",
-                f"€{estimated_cost:,.0f}",
-                delta=f"Approx. €{avg_cost_per_part:,.0f} per part"
-            )
+                st.metric(
+                    "Estimated Total Cost",
+                    format_currency(estimated_cost),
+                    delta=f"Approx. {format_currency(avg_cost_per_part)} per part"
+                )
 
-        with col3:
-            confidence_color = "green" if prediction['confidence'] > 70 else "orange" if prediction['confidence'] > 50 else "red"
-            st.markdown(f"**Confidence Score**")
-            st.markdown(f"<span style='color:{confidence_color}; font-size:32px; font-weight:bold;'>{prediction['confidence']:.0f}%</span>", unsafe_allow_html=True)
+            with col3:
+                confidence_color = "green" if prediction['confidence'] > 70 else "orange" if prediction['confidence'] > 50 else "red"
+                st.markdown(f"**Confidence Score**")
+                st.markdown(f"<span style='color:{confidence_color}; font-size:32px; font-weight:bold;'>{prediction['confidence']:.0f}%</span>", unsafe_allow_html=True)
 
-        # Method used
-        st.info(f"**Prediction Method:** {prediction['method']}")
-        st.markdown(f"*{prediction['explanation']}*")
+            st.divider()
+
+            # Method used
+            st.info(f"**Prediction Method:** {prediction['method']}")
+            st.markdown(f"*{prediction['explanation']}*")
 
         st.markdown("---")
 
@@ -193,34 +201,36 @@ if predict_button:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("#### Model Information")
-            st.markdown(f"**Model Type:** Random Forest Regressor")
-            st.markdown(f"**Training Samples:** {model.training_stats['n_samples']} C-checks")
+            with st.container(border=True):
+                st.markdown("#### Model Information")
+                st.markdown(f"**Model Type:** Random Forest Regressor")
+                st.markdown(f"**Training Samples:** {model.training_stats['n_samples']} C-checks")
 
-            if 'cv_mean_r2' in model.training_stats:
-                r2_score = model.training_stats['cv_mean_r2']
-                st.markdown(f"**Model Accuracy (R²):** {r2_score:.2f}")
+                if 'cv_mean_r2' in model.training_stats:
+                    r2_score = model.training_stats['cv_mean_r2']
+                    st.markdown(f"**Model Accuracy (R²):** {r2_score:.2f}")
 
-            st.markdown(f"**Training Range:** {model.training_stats['training_min']:.0f} - {model.training_stats['training_max']:.0f} parts")
-            st.markdown(f"**Training Average:** {model.training_stats['training_mean']:.0f} parts")
+                st.markdown(f"**Training Range:** {model.training_stats['training_min']:.0f} - {model.training_stats['training_max']:.0f} parts")
+                st.markdown(f"**Training Average:** {model.training_stats['training_mean']:.0f} parts")
 
         with col2:
-            st.markdown("#### Confidence Interpretation")
+            with st.container(border=True):
+                st.markdown("#### Confidence Interpretation")
 
-            if prediction['confidence'] > 70:
-                st.success("**High Confidence** - Strong historical data supports this prediction")
-            elif prediction['confidence'] > 50:
-                st.warning("**Medium Confidence** - Moderate historical data available")
-            else:
-                st.error("**Low Confidence** - Limited historical data for this scenario")
+                if prediction['confidence'] > 70:
+                    st.success("**High Confidence** - Strong historical data supports this prediction")
+                elif prediction['confidence'] > 50:
+                    st.warning("**Medium Confidence** - Moderate historical data available")
+                else:
+                    st.error("**Low Confidence** - Limited historical data for this scenario")
 
-            st.markdown("""
-            **Factors affecting confidence:**
-            - Amount of similar historical C-checks
-            - Availability of planned material data
-            - Model training data quality
-            - Aircraft type and check type representation
-            """)
+                st.markdown("""
+                **Factors affecting confidence:**
+                - Amount of similar historical C-checks
+                - Availability of planned material data
+                - Model training data quality
+                - Aircraft type and check type representation
+                """)
 
         st.markdown("---")
 
@@ -365,25 +375,28 @@ else:
     st.markdown("---")
     st.markdown("### Model Statistics")
 
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.metric("Training Samples", f"{model.training_stats['n_samples']} C-checks")
+        with col1:
+            st.metric("Training Samples", f"{model.training_stats['n_samples']} C-checks")
 
-    with col2:
-        if 'cv_mean_r2' in model.training_stats:
-            r2 = model.training_stats['cv_mean_r2']
-            st.metric("Model Accuracy (R²)", f"{r2:.2f}")
+        with col2:
+            if 'cv_mean_r2' in model.training_stats:
+                r2 = model.training_stats['cv_mean_r2']
+                st.metric("Model Accuracy (R²)", f"{r2:.2f}")
 
-    with col3:
-        st.metric("Model Type", "Random Forest")
+        with col3:
+            st.metric("Model Type", "Random Forest")
 
-    st.markdown(f"""
-    **Training Data Range:**
-    - Minimum: {model.training_stats['training_min']:.0f} parts
-    - Average: {model.training_stats['training_mean']:.0f} parts
-    - Maximum: {model.training_stats['training_max']:.0f} parts
-    """)
+        st.divider()
+
+        st.markdown(f"""
+        **Training Data Range:**
+        - Minimum: {model.training_stats['training_min']:.0f} parts
+        - Average: {model.training_stats['training_mean']:.0f} parts
+        - Maximum: {model.training_stats['training_max']:.0f} parts
+        """)
 
 st.markdown("---")
 st.markdown("*Use the sidebar to navigate to other analysis pages*")

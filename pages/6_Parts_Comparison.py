@@ -17,8 +17,9 @@ if not sys.warnoptions:
 warnings.filterwarnings('ignore')
 
 # Import data loaders
-from utils.data_loader import get_master_view, load_consumption_detailed, load_planned_material_detailed
+from utils.data_loader import get_master_view, load_consumption_detailed, load_planned_material_detailed, is_data_uploaded, show_upload_required
 from utils.plotly_utils import hide_warnings_css
+from utils import format_currency
 
 # Hide warnings with CSS
 hide_warnings_css()
@@ -26,6 +27,10 @@ hide_warnings_css()
 # Page config
 st.title("Parts Comparison")
 st.markdown("Detailed comparison of planned vs consumed parts for each C-check")
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    show_upload_required()
 
 # Load data
 with st.spinner("Loading data..."):
@@ -72,36 +77,37 @@ st.markdown("---")
 # C-Check Summary
 st.markdown("### Selected C-Check Summary")
 
-col1, col2, col3, col4 = st.columns(4)
+with st.container(border=True):
+    col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    st.metric("Planned Parts", int(selected_check['planned_parts_count']))
+    with col1:
+        st.metric("Planned Parts", int(selected_check['planned_parts_count']))
 
-with col2:
-    st.metric(
-        "Consumed Parts",
-        int(selected_check['consumed_parts_count']),
-        delta=int(selected_check['parts_variance']) if pd.notna(selected_check['parts_variance']) else None
-    )
+    with col2:
+        st.metric(
+            "Consumed Parts",
+            int(selected_check['consumed_parts_count']),
+            delta=int(selected_check['parts_variance']) if pd.notna(selected_check['parts_variance']) else None
+        )
 
-with col3:
-    if pd.notna(selected_check['planning_accuracy']):
-        accuracy = selected_check['planning_accuracy']
-        st.metric("Planning Accuracy", f"{accuracy:.1f}%")
+    with col3:
+        if pd.notna(selected_check['planning_accuracy']):
+            accuracy = selected_check['planning_accuracy']
+            st.metric("Planning Accuracy", f"{accuracy:.1f}%")
 
-with col4:
-    if pd.notna(selected_check['consumption_validated']):
-        validated = selected_check['consumption_validated']
-        if validated:
-            st.success("Data Validated")
+    with col4:
+        if pd.notna(selected_check['consumption_validated']):
+            validated = selected_check['consumption_validated']
+            if validated:
+                st.success("Data Validated")
+            else:
+                st.warning("Data Issues")
+                if not selected_check['consumption_date_valid']:
+                    st.caption("Date mismatch")
+                if not selected_check['consumption_station_valid']:
+                    st.caption("Station mismatch")
         else:
-            st.warning("Data Issues")
-            if not selected_check['consumption_date_valid']:
-                st.caption("Date mismatch")
-            if not selected_check['consumption_station_valid']:
-                st.caption("Station mismatch")
-    else:
-        st.info("No validation")
+            st.info("No validation")
 
 st.markdown("---")
 
@@ -175,23 +181,24 @@ comparison = comparison[comparison['category'] != 'Unknown']
 # Summary statistics
 st.markdown("#### Summary Statistics")
 
-col1, col2, col3, col4 = st.columns(4)
+with st.container(border=True):
+    col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    both_count = len(comparison[comparison['category'] == 'Both (Planned & Consumed)'])
-    st.metric("Parts: Both", both_count)
+    with col1:
+        both_count = len(comparison[comparison['category'] == 'Both (Planned & Consumed)'])
+        st.metric("Parts: Both", both_count)
 
-with col2:
-    planned_only = len(comparison[comparison['category'] == 'Planned Only (Not Used)'])
-    st.metric("Parts: Planned Only", planned_only)
+    with col2:
+        planned_only = len(comparison[comparison['category'] == 'Planned Only (Not Used)'])
+        st.metric("Parts: Planned Only", planned_only)
 
-with col3:
-    consumed_only = len(comparison[comparison['category'] == 'Used (Not Planned)'])
-    st.metric("Parts: Used Only", consumed_only)
+    with col3:
+        consumed_only = len(comparison[comparison['category'] == 'Used (Not Planned)'])
+        st.metric("Parts: Used Only", consumed_only)
 
-with col4:
-    total_parts = len(comparison)
-    st.metric("Total Unique Parts", total_parts)
+    with col4:
+        total_parts = len(comparison)
+        st.metric("Total Unique Parts", total_parts)
 
 # Visual breakdown
 st.markdown("#### Category Breakdown")
@@ -219,21 +226,22 @@ total_over = comparison[comparison['cost_variance'] > 0]['cost_variance'].sum()
 total_under = abs(comparison[comparison['cost_variance'] < 0]['cost_variance'].sum())
 net_variance = comparison['cost_variance'].sum()
 
-col1, col2, col3 = st.columns(3)
+with st.container(border=True):
+    col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.metric("Total Over-Consumption", f"€{total_over:,.2f}")
+    with col1:
+        st.metric("Total Over-Consumption", format_currency(total_over))
 
-with col2:
-    st.metric("Total Under-Consumption", f"€{total_under:,.2f}")
+    with col2:
+        st.metric("Total Under-Consumption", format_currency(total_under))
 
-with col3:
-    variance_pct = (net_variance / comparison['planned_cost'].sum() * 100) if comparison['planned_cost'].sum() > 0 else 0
-    st.metric(
-        "Net Cost Variance",
-        f"€{net_variance:,.2f}",
-        delta=f"{variance_pct:+.1f}%"
-    )
+    with col3:
+        variance_pct = (net_variance / comparison['planned_cost'].sum() * 100) if comparison['planned_cost'].sum() > 0 else 0
+        st.metric(
+            "Net Cost Variance",
+            format_currency(net_variance),
+            delta=f"{variance_pct:+.1f}%"
+        )
 
 # Waterfall chart for cost breakdown
 st.markdown("#### Cost Breakdown: Planned vs Consumed")
@@ -302,18 +310,19 @@ st.markdown("Parts that were **both planned AND actually consumed**")
 matching_parts = comparison[comparison['category'] == 'Both (Planned & Consumed)'].copy()
 
 if len(matching_parts) > 0:
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.metric("Matching Parts", len(matching_parts))
+        with col1:
+            st.metric("Matching Parts", len(matching_parts))
 
-    with col2:
-        match_accuracy = (matching_parts['consumed_qty'] / matching_parts['planned_qty']).mean() * 100
-        st.metric("Avg Qty Accuracy", f"{match_accuracy:.1f}%")
+        with col2:
+            match_accuracy = (matching_parts['consumed_qty'] / matching_parts['planned_qty']).mean() * 100
+            st.metric("Avg Qty Accuracy", f"{match_accuracy:.1f}%")
 
-    with col3:
-        total_match_value = matching_parts['consumed_cost'].sum()
-        st.metric("Total Matching Cost", f"€{total_match_value:,.0f}")
+        with col3:
+            total_match_value = matching_parts['consumed_cost'].sum()
+            st.metric("Total Matching Cost", format_currency(total_match_value))
 
     # Visualizations for matching parts
     st.markdown("#### Matching Parts Visualizations")
@@ -378,29 +387,30 @@ st.markdown("### Planned Material Insights")
 if planned_parts is not None and len(planned_parts) > 0:
     st.markdown("#### Stock & Provisioning Analysis")
 
-    col1, col2, col3, col4 = st.columns(4)
+    with st.container(border=True):
+        col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        confirmed_count = (planned_parts['confirmed_qty'] > 0).sum()
-        st.metric("Parts Confirmed", confirmed_count)
+        with col1:
+            confirmed_count = (planned_parts['confirmed_qty'] > 0).sum()
+            st.metric("Parts Confirmed", confirmed_count)
 
-    with col2:
-        confirmed_pct = (planned_parts['confirmed_qty'] > 0).sum() / len(planned_parts) * 100
-        st.metric("Confirmation Rate", f"{confirmed_pct:.1f}%")
+        with col2:
+            confirmed_pct = (planned_parts['confirmed_qty'] > 0).sum() / len(planned_parts) * 100
+            st.metric("Confirmation Rate", f"{confirmed_pct:.1f}%")
 
-    with col3:
-        if 'externally_provisioned' in planned_parts.columns:
-            external_count = (planned_parts['externally_provisioned'] == 'Y').sum()
-            st.metric("Externally Provisioned", external_count)
-        else:
-            st.metric("Externally Provisioned", "N/A")
+        with col3:
+            if 'externally_provisioned' in planned_parts.columns:
+                external_count = (planned_parts['externally_provisioned'] == 'Y').sum()
+                st.metric("Externally Provisioned", external_count)
+            else:
+                st.metric("Externally Provisioned", "N/A")
 
-    with col4:
-        if 'externally_provisioned' in planned_parts.columns:
-            external_pct = (planned_parts['externally_provisioned'] == 'Y').sum() / len(planned_parts) * 100
-            st.metric("External Rate", f"{external_pct:.1f}%")
-        else:
-            st.metric("External Rate", "N/A")
+        with col4:
+            if 'externally_provisioned' in planned_parts.columns:
+                external_pct = (planned_parts['externally_provisioned'] == 'Y').sum() / len(planned_parts) * 100
+                st.metric("External Rate", f"{external_pct:.1f}%")
+            else:
+                st.metric("External Rate", "N/A")
 
     # Qty vs Confirmed Qty Analysis
     st.markdown("#### Planned Qty vs Confirmed Qty")

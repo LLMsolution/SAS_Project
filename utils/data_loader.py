@@ -1,27 +1,62 @@
 """
 SAS Material Supply Analysis - Data Loader Module
-Handles loading and caching of all datasets
+Handles loading data from session state (uploaded files)
 """
 
 import streamlit as st
 import pandas as pd
-from pathlib import Path
 import numpy as np
 
-# Base path to data files
-BASE_PATH = Path(__file__).parent.parent
+
+def is_data_uploaded():
+    """Check if all required data files have been uploaded"""
+    required_keys = [
+        'uploaded_workpacks',
+        'uploaded_utilization',
+        'uploaded_consumption',
+        'uploaded_planned'
+    ]
+    return all(key in st.session_state and st.session_state[key] is not None for key in required_keys)
+
+
+def get_missing_uploads():
+    """Get list of files that haven't been uploaded yet"""
+    files = {
+        'uploaded_workpacks': 'Maintenance Workpacks',
+        'uploaded_utilization': 'Aircraft Utilization',
+        'uploaded_consumption': 'Material Consumption',
+        'uploaded_planned': 'Planned Material'
+    }
+    missing = []
+    for key, name in files.items():
+        if key not in st.session_state or st.session_state[key] is None:
+            missing.append(name)
+    return missing
+
+
+def show_upload_required():
+    """Show message that data upload is required"""
+    st.error("Data niet beschikbaar")
+    st.markdown("Upload eerst alle vereiste bestanden op de **Data Upload** pagina.")
+    missing = get_missing_uploads()
+    if missing:
+        st.markdown("**Ontbrekende bestanden:**")
+        for name in missing:
+            st.markdown(f"- {name}")
+    st.stop()
 
 
 @st.cache_data
 def load_workpacks():
     """
-    Load maintenance workpacks (C-checks, EOL, bridging tasks)
-    Returns: DataFrame with 267 rows, 18 columns
+    Load maintenance workpacks from session state
+    Returns: DataFrame with workpacks or None
     """
-    file_path = BASE_PATH / 'maintenance_workpacks_final_clean.xlsx'
+    if 'uploaded_workpacks' not in st.session_state or st.session_state['uploaded_workpacks'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_workpacks'].copy()
 
         # Convert dates
         df['start_date'] = pd.to_datetime(df['start_date'], errors='coerce')
@@ -30,23 +65,30 @@ def load_workpacks():
         # Calculate duration
         df['duration_days'] = (df['end_date'] - df['start_date']).dt.total_seconds() / (24*3600)
 
+        # Ensure required boolean columns exist
+        if 'is_eol' not in df.columns:
+            df['is_eol'] = 0
+        if 'is_bridging_task' not in df.columns:
+            df['is_bridging_task'] = 0
+
         return df
 
     except Exception as e:
-        st.error(f"Error loading workpacks: {str(e)}")
+        st.error(f"Error processing workpacks: {str(e)}")
         return None
 
 
 @st.cache_data
 def load_utilization():
     """
-    Load aircraft utilization data (hours, cycles)
-    Returns: DataFrame with 4686 rows
+    Load aircraft utilization data from session state
+    Returns: DataFrame with utilization data or None
     """
-    file_path = BASE_PATH / 'aircraft_utilization.xlsx'
+    if 'uploaded_utilization' not in st.session_state or st.session_state['uploaded_utilization'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_utilization'].copy()
 
         # Convert date
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
@@ -54,29 +96,22 @@ def load_utilization():
         return df
 
     except Exception as e:
-        st.error(f"Error loading utilization: {str(e)}")
+        st.error(f"Error processing utilization: {str(e)}")
         return None
 
 
 @st.cache_data
 def load_consumption():
     """
-    Load material consumption data (actual consumption)
+    Load material consumption data from session state
     Filters for consumables (AA, EA, AS, ES) and rotables (YA, YE)
     Returns: DataFrame aggregated by wpno_i with date/station validation
-
-    Voucher modes:
-    - AA: to aircraft (always negative, actual consumed)
-    - AS: to store
-    - EA: from aircraft
-    - ES: from store
-    - YA: rotable install
-    - YE: rotable removal
     """
-    file_path = BASE_PATH / 'material_consumption.xlsx'
+    if 'uploaded_consumption' not in st.session_state or st.session_state['uploaded_consumption'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_consumption'].copy()
 
         # Convert dates
         df['del_date'] = pd.to_datetime(df['del_date'], errors='coerce')
@@ -100,11 +135,11 @@ def load_consumption():
 
         # Aggregate by workpack with date and station info
         agg_df = df_clean.groupby('wpno_i').agg({
-            'partno': 'count',  # Number of parts
-            'qty': lambda x: abs(x).sum(),  # Total quantity (absolute values)
-            'average_price': 'sum',  # Total cost
-            'del_date': ['min', 'max'],  # Date range of consumption
-            'station': lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]  # Most common station
+            'partno': 'count',
+            'qty': lambda x: abs(x).sum(),
+            'average_price': 'sum',
+            'del_date': ['min', 'max'],
+            'station': lambda x: x.mode()[0] if len(x.mode()) > 0 else x.iloc[0]
         }).reset_index()
 
         agg_df.columns = ['wpno_i', 'consumed_parts_count', 'consumed_qty', 'consumed_cost',
@@ -116,29 +151,21 @@ def load_consumption():
         return agg_df
 
     except Exception as e:
-        st.error(f"Error loading consumption: {str(e)}")
+        st.error(f"Error processing consumption: {str(e)}")
         return None
 
 
 @st.cache_data
 def load_consumption_detailed():
     """
-    Load detailed material consumption (part-level)
-    Filters for consumables (AA, EA, AS, ES) and rotables (YA, YE)
+    Load detailed material consumption from session state
     Returns: DataFrame with all consumption records
-
-    Voucher modes:
-    - AA: to aircraft (always negative, actual consumed)
-    - AS: to store
-    - EA: from aircraft
-    - ES: from store
-    - YA: rotable install
-    - YE: rotable removal
     """
-    file_path = BASE_PATH / 'material_consumption.xlsx'
+    if 'uploaded_consumption' not in st.session_state or st.session_state['uploaded_consumption'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_consumption'].copy()
         df['del_date'] = pd.to_datetime(df['del_date'], errors='coerce')
 
         # Filter for consumables (AA, EA, AS, ES) and rotables (YA, YE)
@@ -155,30 +182,35 @@ def load_consumption_detailed():
         return df_filtered
 
     except Exception as e:
-        st.error(f"Error loading detailed consumption: {str(e)}")
+        st.error(f"Error processing detailed consumption: {str(e)}")
         return None
 
 
 @st.cache_data
 def load_planned_material():
     """
-    Load planned material data
+    Load planned material data from session state
     Returns: DataFrame aggregated by wpno_i
     """
-    file_path = BASE_PATH / 'planned_material_on_workpacks.xlsx'
+    if 'uploaded_planned' not in st.session_state or st.session_state['uploaded_planned'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_planned'].copy()
 
         # Remove rows without wpno_i
         df_clean = df[df['wpno_i'].notna()].copy()
 
+        # Ensure confirmed_qty exists
+        if 'confirmed_qty' not in df_clean.columns:
+            df_clean['confirmed_qty'] = 0
+
         # Aggregate by workpack
         agg_df = df_clean.groupby('wpno_i').agg({
-            'partno': 'count',  # Number of parts
-            'qty': 'sum',  # Total planned quantity
-            'confirmed_qty': 'sum',  # Total confirmed quantity
-            'average_price': 'sum',  # Total planned cost
+            'partno': 'count',
+            'qty': 'sum',
+            'confirmed_qty': 'sum',
+            'average_price': 'sum',
         }).reset_index()
 
         agg_df.columns = ['wpno_i', 'planned_parts_count', 'planned_qty', 'planned_confirmed_qty', 'planned_cost']
@@ -189,24 +221,38 @@ def load_planned_material():
         return agg_df
 
     except Exception as e:
-        st.error(f"Error loading planned material: {str(e)}")
+        st.error(f"Error processing planned material: {str(e)}")
         return None
 
 
 @st.cache_data
 def load_planned_material_detailed():
     """
-    Load detailed planned material (part-level)
+    Load detailed planned material from session state
     Returns: DataFrame with all planned material records
     """
-    file_path = BASE_PATH / 'planned_material_on_workpacks.xlsx'
+    if 'uploaded_planned' not in st.session_state or st.session_state['uploaded_planned'] is None:
+        return None
 
     try:
-        df = pd.read_excel(file_path)
+        df = st.session_state['uploaded_planned'].copy()
+
+        # Ensure optional columns exist
+        if 'description' not in df.columns:
+            df['description'] = ''
+        if 'confirmed_qty' not in df.columns:
+            df['confirmed_qty'] = 0
+        if 'tool' not in df.columns:
+            df['tool'] = ''
+        if 'mat_class' not in df.columns:
+            df['mat_class'] = ''
+        if 'externally_provisioned' not in df.columns:
+            df['externally_provisioned'] = 'N'
+
         return df
 
     except Exception as e:
-        st.error(f"Error loading detailed planned material: {str(e)}")
+        st.error(f"Error processing detailed planned material: {str(e)}")
         return None
 
 
@@ -215,13 +261,6 @@ def match_consumption_to_workpacks(workpacks_df, consumption_detail_df):
     Match consumption to workpacks using two strategies:
     1. Direct match on wpno_i (when available)
     2. Time-based match on del_date + station + receiver/aircraft (when wpno_i is missing)
-
-    Args:
-        workpacks_df: Workpacks dataframe
-        consumption_detail_df: Detailed consumption dataframe
-
-    Returns:
-        Aggregated consumption matched to workpacks
     """
     if consumption_detail_df is None or len(consumption_detail_df) == 0:
         return None
@@ -243,8 +282,6 @@ def match_consumption_to_workpacks(workpacks_df, consumption_detail_df):
             matches = consumption_with_wpno[consumption_with_wpno['wpno_i'] == wpno]
 
             if len(matches) > 0:
-                # Aggregate matched consumption
-                # Use absolute values for qty (AA is negative, we want positive counts)
                 agg = {
                     'wpno_i': wpno,
                     'consumed_parts_count': len(matches),
@@ -281,19 +318,16 @@ def match_consumption_to_workpacks(workpacks_df, consumption_detail_df):
             ]
 
             # Additional filters by receiver or aircraft
-            if pd.notna(wp['ac_registr']):
-                # Try matching by aircraft registration
+            if pd.notna(wp['ac_registr']) and 'ac_registr' in consumption_no_wpno.columns:
                 ac_matches = matches[matches['ac_registr'] == wp['ac_registr']]
                 if len(ac_matches) > 0:
                     matches = ac_matches
-                else:
-                    # Try matching by receiver (if receiver contains aircraft registration or station code)
+                elif 'receiver' in matches.columns:
                     receiver_matches = matches[matches['receiver'].str.contains(wp['ac_registr'], na=False, case=False)]
                     if len(receiver_matches) > 0:
                         matches = receiver_matches
 
             if len(matches) > 0:
-                # Aggregate matched consumption
                 agg = {
                     'wpno_i': wp['wpno_i'],
                     'consumed_parts_count': len(matches),
@@ -320,9 +354,11 @@ def get_master_view():
     """
     Create a master view by joining all datasets
     Returns: DataFrame with workpacks + utilization + consumption + planned
-
-    NOTE: Consumption is matched by TIME + STATION, not wpno_i
     """
+    # Check if data is uploaded
+    if not is_data_uploaded():
+        return None
+
     # Load all datasets
     workpacks = load_workpacks()
     utilization = load_utilization()
@@ -345,17 +381,14 @@ def get_master_view():
 
         if consumption_matched is not None:
             master = master.merge(consumption_matched, on='wpno_i', how='left')
-
-            # Mark all matched consumption as validated
             master['consumption_validated'] = master['consumed_parts_count'].notna()
         else:
-            # No consumption matches found
             master['consumed_parts_count'] = np.nan
             master['consumed_qty'] = np.nan
             master['consumed_cost'] = np.nan
             master['consumption_validated'] = False
 
-    # Add planned material data - MATCHED BY wpno_i (as requested)
+    # Add planned material data
     if planned is not None:
         master = master.merge(planned, on='wpno_i', how='left')
 
@@ -385,17 +418,14 @@ def add_utilization_data(workpacks_df, utilization_df):
         if pd.isna(ac_registr) or pd.isna(start_date):
             return pd.Series({'aircraft_hours': np.nan, 'aircraft_cycles': np.nan})
 
-        # Filter for this aircraft
         ac_util = utilization_df[utilization_df['ac_registr'] == ac_registr].copy()
 
         if len(ac_util) == 0:
             return pd.Series({'aircraft_hours': np.nan, 'aircraft_cycles': np.nan})
 
-        # Get data before start_date
         ac_util = ac_util[ac_util['date'] <= start_date]
 
         if len(ac_util) == 0:
-            # Use earliest available
             ac_util = utilization_df[utilization_df['ac_registr'] == ac_registr].copy()
             ac_util = ac_util.sort_values('date')
             if len(ac_util) > 0:
@@ -403,16 +433,12 @@ def add_utilization_data(workpacks_df, utilization_df):
                 return pd.Series({'aircraft_hours': latest['tah'], 'aircraft_cycles': latest['tac']})
             return pd.Series({'aircraft_hours': np.nan, 'aircraft_cycles': np.nan})
 
-        # Get latest
         latest = ac_util.sort_values('date', ascending=False).iloc[0]
         return pd.Series({'aircraft_hours': latest['tah'], 'aircraft_cycles': latest['tac']})
 
-    # Apply function
     util_data = workpacks_df.apply(get_latest_util, axis=1)
     workpacks_df['aircraft_hours'] = util_data['aircraft_hours']
     workpacks_df['aircraft_cycles'] = util_data['aircraft_cycles']
-
-    # Calculate hours per cycle
     workpacks_df['hours_per_cycle'] = workpacks_df['aircraft_hours'] / workpacks_df['aircraft_cycles']
 
     return workpacks_df
@@ -421,8 +447,11 @@ def add_utilization_data(workpacks_df, utilization_df):
 def get_data_completeness():
     """
     Get statistics about data completeness
-    Returns: dict with completeness metrics
+    Returns: dict with completeness metrics or None if data not uploaded
     """
+    if not is_data_uploaded():
+        return None
+
     master = get_master_view()
 
     if master is None:
@@ -445,8 +474,11 @@ def get_data_completeness():
 def get_consumption_by_category():
     """
     Get separate statistics for consumables and rotables
-    Returns: dict with consumable and rotable metrics
+    Returns: dict with consumable and rotable metrics or None if data not uploaded
     """
+    if not is_data_uploaded():
+        return None
+
     consumption_detail = load_consumption_detailed()
 
     if consumption_detail is None or len(consumption_detail) == 0:
@@ -455,7 +487,6 @@ def get_consumption_by_category():
     consumables = consumption_detail[consumption_detail['material_category'] == 'consumable']
     rotables = consumption_detail[consumption_detail['material_category'] == 'rotable']
 
-    # Get voucher mode breakdown
     vm_counts = consumption_detail['vm'].value_counts().to_dict()
 
     return {
