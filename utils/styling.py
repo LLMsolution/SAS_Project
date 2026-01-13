@@ -103,27 +103,31 @@ def apply_sas_styling():
             border-color: #cccccc !important;
         }
 
-        /* Sidebar radio buttons - style only the circle indicator */
+        /* Sidebar radio buttons - reduce spacing */
         [data-testid="stSidebar"] .stRadio [role="radiogroup"] {
-            gap: 0.25rem !important;
+            gap: 0 !important;
         }
 
         [data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
             background-color: transparent !important;
+            padding: 0.15rem 0 !important;
+            margin: 0 !important;
         }
 
         [data-testid="stSidebar"] .stRadio [role="radiogroup"] label p {
             color: white !important;
         }
 
-        /* Radio circle - the actual indicator */
+        /* Radio circle - unselected: white border, transparent inside */
         [data-testid="stSidebar"] .stRadio [role="radiogroup"] label > div:first-child > div {
-            border-color: white !important;
+            border: 2px solid white !important;
+            background-color: transparent !important;
         }
 
+        /* Radio circle - selected: orange fill with white border */
         [data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"] > div:first-child > div {
             background-color: #FFA500 !important;
-            border-color: #FFA500 !important;
+            border: 2px solid white !important;
         }
 
         /* Sidebar buttons - make them clearly visible as buttons */
