@@ -73,17 +73,34 @@ def apply_sas_styling():
             color: #2B3087;
             font-weight: bold;
         }
+
+        /* Sidebar input fields - make them readable */
+        [data-testid="stSidebar"] input,
+        [data-testid="stSidebar"] textarea {
+            color: #333333 !important;
+            background-color: white !important;
+        }
+
+        /* Sidebar selectbox container */
+        [data-testid="stSidebar"] [data-baseweb="select"] {
+            background-color: white !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="select"] span,
+        [data-testid="stSidebar"] [data-baseweb="select"] div {
+            color: #333333 !important;
+        }
+
+        /* Fix dropdown arrow color */
+        [data-testid="stSidebar"] [data-baseweb="select"] svg {
+            fill: #333333 !important;
+        }
+
+        /* Selectbox and multiselect inner elements */
+        [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div,
+        [data-testid="stSidebar"] .stMultiSelect [data-baseweb="select"] > div {
+            background-color: white !important;
+            border-color: #cccccc !important;
+        }
     </style>
     """, unsafe_allow_html=True)
-
-    # Sidebar with SAS logo (white version for blue background)
-    # Find the project root (parent of utils folder)
-    utils_dir = Path(__file__).parent
-    project_root = utils_dir.parent
-    logo_path = project_root / 'assets' / 'sas_logo_white.png'
-
-    if logo_path.exists():
-        logo = Image.open(logo_path)
-        st.sidebar.image(logo, width=200)
-
-    st.sidebar.markdown("---")

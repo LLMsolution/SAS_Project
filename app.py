@@ -27,9 +27,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Apply shared SAS styling (CSS + sidebar logo)
+# Apply shared SAS styling (CSS only)
 from utils.styling import apply_sas_styling
 apply_sas_styling()
+
+# Show SAS logo in sidebar (only on home page)
+logo_path = Path(__file__).parent / 'assets' / 'sas_logo_white.png'
+if logo_path.exists():
+    logo = Image.open(logo_path)
+    st.sidebar.image(logo, width=200)
+    st.sidebar.markdown("---")
 
 # Main app
 st.title("SAS Material Supply Analysis")
