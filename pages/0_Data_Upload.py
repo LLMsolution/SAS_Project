@@ -13,6 +13,10 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 warnings.filterwarnings('ignore')
 
+# Apply shared SAS styling
+from utils.styling import apply_sas_styling
+apply_sas_styling()
+
 # Page config
 st.title("Data Upload")
 st.markdown("Upload de vereiste Excel bestanden om de applicatie te gebruiken")

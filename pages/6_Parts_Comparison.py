@@ -24,6 +24,10 @@ from utils import format_currency
 # Hide warnings with CSS
 hide_warnings_css()
 
+# Apply shared SAS styling
+from utils.styling import apply_sas_styling
+apply_sas_styling()
+
 # Page config
 st.title("Parts Comparison")
 st.markdown("Detailed comparison of planned vs consumed parts for each C-check")

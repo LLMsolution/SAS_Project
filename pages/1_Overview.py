@@ -24,6 +24,10 @@ from utils import format_currency, format_number
 # Hide warnings with CSS
 hide_warnings_css()
 
+# Apply shared SAS styling
+from utils.styling import apply_sas_styling
+apply_sas_styling()
+
 # Page config
 st.title("Overview & KPIs")
 st.markdown("High-level summary of C-check material planning performance")
