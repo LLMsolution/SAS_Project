@@ -57,12 +57,9 @@ st.sidebar.markdown("## New C-Check Details")
 c_checks = master_df[master_df['is_c_check'] == 1].copy()
 aircraft_list = sorted(c_checks['ac_registr'].unique().tolist())
 
-input_mode = st.sidebar.radio(
-    "Input Method",
-    ["Select Existing Aircraft", "Manual Input"]
-)
+manual_input = st.sidebar.checkbox("Manual Input", value=False)
 
-if input_mode == "Select Existing Aircraft":
+if not manual_input:
     selected_aircraft = st.sidebar.selectbox("Aircraft Registration", aircraft_list)
 
     # Get latest data for this aircraft
