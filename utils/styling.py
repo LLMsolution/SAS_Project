@@ -103,39 +103,25 @@ def apply_sas_styling():
             border-color: #cccccc !important;
         }
 
-        /* Sidebar radio buttons - fix circle visibility */
-        [data-testid="stSidebar"] [data-baseweb="radio"] {
+        /* Sidebar radio buttons - style only the circle indicator */
+        [data-testid="stSidebar"] .stRadio [role="radiogroup"] {
+            gap: 0.25rem !important;
+        }
+
+        [data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
             background-color: transparent !important;
         }
 
-        [data-testid="stSidebar"] [data-baseweb="radio"] > div {
-            background-color: white !important;
-            border: 2px solid white !important;
-        }
-
-        [data-testid="stSidebar"] [data-baseweb="radio"] [data-testid="stMarkdownContainer"] p {
+        [data-testid="stSidebar"] .stRadio [role="radiogroup"] label p {
             color: white !important;
         }
 
-        /* Radio button circle styling */
-        [data-testid="stSidebar"] .stRadio > div {
-            gap: 0.5rem;
+        /* Radio circle - the actual indicator */
+        [data-testid="stSidebar"] .stRadio [role="radiogroup"] label > div:first-child > div {
+            border-color: white !important;
         }
 
-        [data-testid="stSidebar"] .stRadio label {
-            background-color: transparent !important;
-            padding: 0.25rem 0;
-        }
-
-        [data-testid="stSidebar"] .stRadio label > div:first-child {
-            background-color: white !important;
-            border: 2px solid white !important;
-            border-radius: 50%;
-            width: 20px !important;
-            height: 20px !important;
-        }
-
-        [data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:first-child {
+        [data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"] > div:first-child > div {
             background-color: #FFA500 !important;
             border-color: #FFA500 !important;
         }
@@ -160,13 +146,20 @@ def apply_sas_styling():
         }
 
         /* Sidebar checkbox styling */
-        [data-testid="stSidebar"] .stCheckbox label > div:first-child {
-            background-color: white !important;
-            border: 2px solid white !important;
-            border-radius: 4px;
+        [data-testid="stSidebar"] .stCheckbox label {
+            background-color: transparent !important;
         }
 
-        [data-testid="stSidebar"] .stCheckbox label[data-checked="true"] > div:first-child {
+        [data-testid="stSidebar"] .stCheckbox label p {
+            color: white !important;
+        }
+
+        [data-testid="stSidebar"] .stCheckbox label > div:first-child > div {
+            border-color: white !important;
+            background-color: transparent !important;
+        }
+
+        [data-testid="stSidebar"] .stCheckbox label[data-checked="true"] > div:first-child > div {
             background-color: #FFA500 !important;
             border-color: #FFA500 !important;
         }
