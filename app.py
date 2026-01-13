@@ -102,11 +102,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar with SAS logo
-logo_path = Path(__file__).parent / 'assets' / 'Scandinavian_Airlines_logo.svg.png'
+# Sidebar with SAS logo (white version for blue background)
+logo_path = Path(__file__).parent / 'assets' / 'sas_logo_white.png'
 if logo_path.exists():
     logo = Image.open(logo_path)
-    st.sidebar.image(logo, width='stretch')
+    st.sidebar.image(logo, width=200)
 
 st.sidebar.markdown("---")
 
