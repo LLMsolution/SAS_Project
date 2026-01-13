@@ -102,5 +102,73 @@ def apply_sas_styling():
             background-color: white !important;
             border-color: #cccccc !important;
         }
+
+        /* Sidebar radio buttons - fix circle visibility */
+        [data-testid="stSidebar"] [data-baseweb="radio"] {
+            background-color: transparent !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="radio"] > div {
+            background-color: white !important;
+            border: 2px solid white !important;
+        }
+
+        [data-testid="stSidebar"] [data-baseweb="radio"] [data-testid="stMarkdownContainer"] p {
+            color: white !important;
+        }
+
+        /* Radio button circle styling */
+        [data-testid="stSidebar"] .stRadio > div {
+            gap: 0.5rem;
+        }
+
+        [data-testid="stSidebar"] .stRadio label {
+            background-color: transparent !important;
+            padding: 0.25rem 0;
+        }
+
+        [data-testid="stSidebar"] .stRadio label > div:first-child {
+            background-color: white !important;
+            border: 2px solid white !important;
+            border-radius: 50%;
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        [data-testid="stSidebar"] .stRadio label[data-checked="true"] > div:first-child {
+            background-color: #FFA500 !important;
+            border-color: #FFA500 !important;
+        }
+
+        /* Sidebar buttons - make them clearly visible as buttons */
+        [data-testid="stSidebar"] .stButton > button {
+            background-color: #FFA500 !important;
+            color: #2B3087 !important;
+            border: 2px solid #FFA500 !important;
+            border-radius: 8px !important;
+            padding: 0.5rem 1rem !important;
+            font-weight: bold !important;
+            width: 100% !important;
+            margin-top: 1rem !important;
+            transition: all 0.3s ease !important;
+        }
+
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background-color: white !important;
+            color: #2B3087 !important;
+            border-color: white !important;
+        }
+
+        /* Sidebar checkbox styling */
+        [data-testid="stSidebar"] .stCheckbox label > div:first-child {
+            background-color: white !important;
+            border: 2px solid white !important;
+            border-radius: 4px;
+        }
+
+        [data-testid="stSidebar"] .stCheckbox label[data-checked="true"] > div:first-child {
+            background-color: #FFA500 !important;
+            border-color: #FFA500 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
