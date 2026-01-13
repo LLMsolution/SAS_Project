@@ -19,7 +19,7 @@ apply_sas_styling()
 
 # Page config
 st.title("Data Upload")
-st.markdown("Upload de vereiste Excel bestanden om de applicatie te gebruiken")
+st.markdown("Upload de 4 vereiste Excel bestanden in één keer")
 
 # Define required files and their columns
 REQUIRED_FILES = {
@@ -28,31 +28,51 @@ REQUIRED_FILES = {
         'description': 'C-checks, EOL en bridging tasks',
         'required_columns': ['wpno_i', 'wpno', 'ac_registr', 'ac_typ', 'station',
                             'start_date', 'end_date', 'is_c_check'],
-        'optional_columns': ['check_type', 'is_eol', 'is_bridging_task'],
         'session_key': 'uploaded_workpacks'
     },
     'utilization': {
         'name': 'Aircraft Utilization',
         'description': 'Vliegtuig uren en cycles',
         'required_columns': ['ac_registr', 'date', 'tah', 'tac'],
-        'optional_columns': [],
         'session_key': 'uploaded_utilization'
     },
     'consumption': {
         'name': 'Material Consumption',
         'description': 'Werkelijke materiaalconsumptie',
         'required_columns': ['partno', 'qty', 'average_price', 'del_date', 'station', 'vm'],
-        'optional_columns': ['wpno_i', 'ac_registr', 'receiver', 'ata_chapter'],
         'session_key': 'uploaded_consumption'
     },
     'planned': {
         'name': 'Planned Material',
         'description': 'Geplande materialen per workpack',
         'required_columns': ['wpno_i', 'partno', 'qty', 'average_price'],
-        'optional_columns': ['description', 'confirmed_qty', 'tool', 'mat_class', 'externally_provisioned'],
         'session_key': 'uploaded_planned'
     }
 }
+
+
+def detect_file_type(df):
+    """Auto-detect which dataset type a file is based on its columns"""
+    df_cols = set(df.columns.tolist())
+
+    # Check each file type - order matters (most specific first)
+    # Workpacks has unique columns like 'is_c_check', 'end_date'
+    if 'is_c_check' in df_cols and 'wpno' in df_cols:
+        return 'workpacks'
+
+    # Utilization has 'tah', 'tac' which are unique
+    if 'tah' in df_cols and 'tac' in df_cols:
+        return 'utilization'
+
+    # Consumption has 'vm', 'del_date' which are unique
+    if 'vm' in df_cols and 'del_date' in df_cols:
+        return 'consumption'
+
+    # Planned has 'partno' and 'wpno_i' but not 'vm' or 'del_date'
+    if 'partno' in df_cols and 'wpno_i' in df_cols and 'vm' not in df_cols:
+        return 'planned'
+
+    return None
 
 
 def validate_columns(df, required_columns):
@@ -91,54 +111,85 @@ else:
 
 st.markdown("---")
 
-# Upload sections
-for key, config in REQUIRED_FILES.items():
-    with st.container(border=True):
-        col1, col2 = st.columns([3, 1])
+# Single multi-file uploader
+st.markdown("### Upload Bestanden")
+st.markdown("Selecteer alle 4 Excel bestanden tegelijk. Het systeem detecteert automatisch welk bestand wat is.")
 
-        with col1:
-            st.markdown(f"### {config['name']}")
-            st.caption(config['description'])
+uploaded_files = st.file_uploader(
+    "Selecteer 4 Excel bestanden (.xlsx)",
+    type=['xlsx'],
+    accept_multiple_files=True,
+    key="multi_uploader"
+)
 
-        with col2:
-            if status[key]:
-                st.success("Geupload")
-            else:
-                st.error("Niet geupload")
+if uploaded_files:
+    # Process all files
+    with st.spinner("Bestanden worden verwerkt..."):
+        results = []
+        files_to_store = {}
 
-        # Show required columns
-        st.markdown("**Vereiste kolommen:**")
-        st.code(", ".join(config['required_columns']))
-
-        if config['optional_columns']:
-            st.markdown("**Optionele kolommen:**")
-            st.code(", ".join(config['optional_columns']))
-
-        # File uploader
-        uploaded_file = st.file_uploader(
-            f"Upload {config['name']} (.xlsx)",
-            type=['xlsx'],
-            key=f"uploader_{key}"
-        )
-
-        if uploaded_file is not None:
+        for uploaded_file in uploaded_files:
             try:
                 df = pd.read_excel(uploaded_file)
+                file_type = detect_file_type(df)
 
-                # Validate columns
-                missing = validate_columns(df, config['required_columns'])
-
-                if missing:
-                    st.error(f"Ontbrekende kolommen: {', '.join(missing)}")
-                    st.markdown("**Gevonden kolommen:**")
-                    st.code(", ".join(df.columns.tolist()))
+                if file_type is None:
+                    results.append({
+                        'file': uploaded_file.name,
+                        'status': 'error',
+                        'message': 'Kon bestandstype niet detecteren op basis van kolommen'
+                    })
                 else:
-                    # Store in session state
-                    st.session_state[config['session_key']] = df
-                    st.rerun()  # Force immediate status update
+                    config = REQUIRED_FILES[file_type]
+                    missing = validate_columns(df, config['required_columns'])
+
+                    if missing:
+                        results.append({
+                            'file': uploaded_file.name,
+                            'status': 'error',
+                            'message': f"Ontbrekende kolommen voor {config['name']}: {', '.join(missing)}"
+                        })
+                    else:
+                        files_to_store[config['session_key']] = df
+                        results.append({
+                            'file': uploaded_file.name,
+                            'status': 'success',
+                            'message': f"Herkend als: {config['name']} ({len(df)} rijen)"
+                        })
 
             except Exception as e:
-                st.error(f"Fout bij laden: {str(e)}")
+                results.append({
+                    'file': uploaded_file.name,
+                    'status': 'error',
+                    'message': f"Fout bij laden: {str(e)}"
+                })
+
+        # Show results
+        st.markdown("#### Resultaten:")
+        for result in results:
+            if result['status'] == 'success':
+                st.success(f"**{result['file']}**: {result['message']}")
+            else:
+                st.error(f"**{result['file']}**: {result['message']}")
+
+        # Store all successful files at once
+        if files_to_store:
+            for key, df in files_to_store.items():
+                st.session_state[key] = df
+
+            # Check if we have new uploads
+            new_status = get_upload_status()
+            if new_status != status:
+                st.rerun()
+
+# Show what files are expected
+st.markdown("---")
+st.markdown("### Verwachte Bestanden")
+
+for key, config in REQUIRED_FILES.items():
+    with st.expander(f"{config['name']} - {config['description']}"):
+        st.markdown("**Vereiste kolommen:**")
+        st.code(", ".join(config['required_columns']))
 
 # Clear all data button
 st.markdown("---")
