@@ -73,16 +73,6 @@ def apply_sas_styling():
             color: #2B3087;
             font-weight: bold;
         }
-
-        /* Hide Plotly deprecation warnings */
-        div[data-testid="stAlert"] div[role="alert"] {
-            display: none !important;
-        }
-
-        /* Alternative: hide all alerts */
-        .element-container div[data-testid="stAlert"] {
-            display: none !important;
-        }
     </style>
     """, unsafe_allow_html=True)
 
