@@ -104,7 +104,6 @@ station = st.sidebar.selectbox("Station", stations)
 is_eol = st.sidebar.checkbox("End of Lease (EOL)")
 
 # Optional: Planned material data
-st.sidebar.markdown("---")
 st.sidebar.markdown("**Optional: Planned Material**")
 has_planned = st.sidebar.checkbox("I have planned material data")
 
@@ -129,7 +128,6 @@ if has_planned:
     )
 
 # Predict button
-st.sidebar.markdown("---")
 predict_button = st.sidebar.button("Predict Material Requirements", type="primary")
 
 # Main content

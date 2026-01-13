@@ -139,7 +139,7 @@ def apply_sas_styling():
             padding: 0.5rem 1rem !important;
             font-weight: bold !important;
             width: 100% !important;
-            margin-top: 1rem !important;
+            margin-top: 0.5rem !important;
             transition: all 0.3s ease !important;
         }
 
