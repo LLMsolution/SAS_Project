@@ -18,8 +18,9 @@ if not sys.warnoptions:
 warnings.filterwarnings('ignore')
 
 # Import data loader
-from utils.data_loader import get_master_view
+from utils.data_loader import get_master_view, is_data_uploaded, show_upload_required
 from utils.plotly_utils import hide_warnings_css
+from utils import format_currency
 
 # Hide warnings with CSS
 hide_warnings_css()
@@ -27,6 +28,10 @@ hide_warnings_css()
 # Page config
 st.title("Trend Analysis")
 st.markdown("Analyze material planning trends over time")
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    show_upload_required()
 
 # Load data
 with st.spinner("Loading data..."):
@@ -109,19 +114,20 @@ if len(accuracy_data) > 0:
     st.plotly_chart(fig_accuracy, width='stretch')
 
     # Statistics
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        overall_accuracy = accuracy_data['planning_accuracy'].mean()
-        st.metric("Overall Average Accuracy", f"{overall_accuracy:.1f}%")
+        with col1:
+            overall_accuracy = accuracy_data['planning_accuracy'].mean()
+            st.metric("Overall Average Accuracy", f"{overall_accuracy:.1f}%")
 
-    with col2:
-        trend_direction = "Improving" if accuracy_trend['Average Accuracy %'].iloc[-1] > accuracy_trend['Average Accuracy %'].iloc[0] else "Declining"
-        st.metric("Trend Direction", trend_direction)
+        with col2:
+            trend_direction = "Improving" if accuracy_trend['Average Accuracy %'].iloc[-1] > accuracy_trend['Average Accuracy %'].iloc[0] else "Declining"
+            st.metric("Trend Direction", trend_direction)
 
-    with col3:
-        best_period = accuracy_trend.loc[accuracy_trend['Average Accuracy %'].idxmax(), 'Period']
-        st.metric("Best Period", f"{best_period}")
+        with col3:
+            best_period = accuracy_trend.loc[accuracy_trend['Average Accuracy %'].idxmax(), 'Period']
+            st.metric("Best Period", f"{best_period}")
 else:
     st.info("Insufficient data with planning accuracy for trend analysis")
 
@@ -187,19 +193,20 @@ if len(cost_data) > 0:
         st.plotly_chart(fig_cost_type, width='stretch')
 
     # Cost statistics
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        avg_cost = cost_data['consumed_cost'].mean()
-        st.metric("Average Cost", f"€{avg_cost:,.0f}")
+        with col1:
+            avg_cost = cost_data['consumed_cost'].mean()
+            st.metric("Average Cost", format_currency(avg_cost))
 
-    with col2:
-        cost_change = ((cost_trend['Average Cost'].iloc[-1] / cost_trend['Average Cost'].iloc[0]) - 1) * 100
-        st.metric("Cost Change", f"{cost_change:+.1f}%")
+        with col2:
+            cost_change = ((cost_trend['Average Cost'].iloc[-1] / cost_trend['Average Cost'].iloc[0]) - 1) * 100
+            st.metric("Cost Change", f"{cost_change:+.1f}%")
 
-    with col3:
-        max_cost = cost_data['consumed_cost'].max()
-        st.metric("Highest Cost", f"€{max_cost:,.0f}")
+        with col3:
+            max_cost = cost_data['consumed_cost'].max()
+            st.metric("Highest Cost", format_currency(max_cost))
 else:
     st.info("Insufficient cost data for trend analysis")
 
@@ -262,19 +269,20 @@ if len(parts_data) > 0:
     st.plotly_chart(fig_parts, width='stretch')
 
     # Statistics
-    col1, col2, col3 = st.columns(3)
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        avg_parts = parts_data['consumed_parts_count'].mean()
-        st.metric("Average Parts", f"{avg_parts:.0f}")
+        with col1:
+            avg_parts = parts_data['consumed_parts_count'].mean()
+            st.metric("Average Parts", f"{avg_parts:.0f}")
 
-    with col2:
-        parts_std = parts_data['consumed_parts_count'].std()
-        st.metric("Standard Deviation", f"{parts_std:.0f}")
+        with col2:
+            parts_std = parts_data['consumed_parts_count'].std()
+            st.metric("Standard Deviation", f"{parts_std:.0f}")
 
-    with col3:
-        parts_range = parts_data['consumed_parts_count'].max() - parts_data['consumed_parts_count'].min()
-        st.metric("Range", f"{parts_range:.0f}")
+        with col3:
+            parts_range = parts_data['consumed_parts_count'].max() - parts_data['consumed_parts_count'].min()
+            st.metric("Range", f"{parts_range:.0f}")
 else:
     st.info("Insufficient parts data for trend analysis")
 

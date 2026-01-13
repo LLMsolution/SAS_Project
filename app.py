@@ -92,7 +92,20 @@ Use the sidebar to navigate between different analysis pages:
 """)
 
 # Load and display data summary
-from utils.data_loader import get_data_completeness, get_consumption_by_category
+from utils.data_loader import get_data_completeness, get_consumption_by_category, is_data_uploaded, get_missing_uploads
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    st.warning("Geen data beschikbaar. Upload eerst alle vereiste bestanden.")
+
+    missing = get_missing_uploads()
+    if missing:
+        st.markdown("**Ontbrekende bestanden:**")
+        for name in missing:
+            st.markdown(f"- {name}")
+
+    st.info("Ga naar de **Data Upload** pagina in de sidebar om de bestanden te uploaden.")
+    st.stop()
 
 completeness = get_data_completeness()
 

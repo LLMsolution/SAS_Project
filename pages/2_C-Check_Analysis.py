@@ -17,8 +17,9 @@ if not sys.warnoptions:
 warnings.filterwarnings('ignore')
 
 # Import data loaders
-from utils.data_loader import get_master_view, load_consumption_detailed, load_planned_material_detailed
+from utils.data_loader import get_master_view, load_consumption_detailed, load_planned_material_detailed, is_data_uploaded, show_upload_required
 from utils.plotly_utils import hide_warnings_css
+from utils import format_currency
 
 # Hide warnings with CSS
 hide_warnings_css()
@@ -26,6 +27,10 @@ hide_warnings_css()
 # Page config
 st.title("C-Check Analysis")
 st.markdown("Detailed analysis of individual C-checks")
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    show_upload_required()
 
 # Load data
 with st.spinner("Loading data..."):
@@ -70,29 +75,32 @@ st.markdown("### C-Check Details")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("**Aircraft Information**")
-    st.markdown(f"**Registration:** {selected_check['ac_registr']}")
-    st.markdown(f"**Type:** {selected_check['ac_typ']}")
-    if pd.notna(selected_check['aircraft_hours']):
-        st.markdown(f"**Hours:** {selected_check['aircraft_hours']:,.0f}")
-    if pd.notna(selected_check['aircraft_cycles']):
-        st.markdown(f"**Cycles:** {selected_check['aircraft_cycles']:,.0f}")
+    with st.container(border=True):
+        st.markdown("**Aircraft Information**")
+        st.markdown(f"Registration: {selected_check['ac_registr']}")
+        st.markdown(f"Type: {selected_check['ac_typ']}")
+        if pd.notna(selected_check['aircraft_hours']):
+            st.markdown(f"Hours: {selected_check['aircraft_hours']:,.0f}")
+        if pd.notna(selected_check['aircraft_cycles']):
+            st.markdown(f"Cycles: {selected_check['aircraft_cycles']:,.0f}")
 
 with col2:
-    st.markdown("**Check Information**")
-    st.markdown(f"**Workpack:** {selected_check['wpno']}")
-    st.markdown(f"**Station:** {selected_check['station']}")
-    if pd.notna(selected_check['duration_days']):
-        st.markdown(f"**Duration:** {selected_check['duration_days']:.1f} days")
+    with st.container(border=True):
+        st.markdown("**Check Information**")
+        st.markdown(f"Workpack: {selected_check['wpno']}")
+        st.markdown(f"Station: {selected_check['station']}")
+        if pd.notna(selected_check['duration_days']):
+            st.markdown(f"Duration: {selected_check['duration_days']:.1f} days")
 
 with col3:
-    st.markdown("**Dates & Status**")
-    if pd.notna(selected_check['start_date']):
-        st.markdown(f"**Start:** {pd.to_datetime(selected_check['start_date']).strftime('%Y-%m-%d')}")
-    if pd.notna(selected_check['end_date']):
-        st.markdown(f"**End:** {pd.to_datetime(selected_check['end_date']).strftime('%Y-%m-%d')}")
-    st.markdown(f"**EOL:** {'Yes' if selected_check['is_eol'] == 1 else 'No'}")
-    st.markdown(f"**Bridging:** {'Yes' if selected_check['is_bridging_task'] == 1 else 'No'}")
+    with st.container(border=True):
+        st.markdown("**Dates & Status**")
+        if pd.notna(selected_check['start_date']):
+            st.markdown(f"Start: {pd.to_datetime(selected_check['start_date']).strftime('%Y-%m-%d')}")
+        if pd.notna(selected_check['end_date']):
+            st.markdown(f"End: {pd.to_datetime(selected_check['end_date']).strftime('%Y-%m-%d')}")
+        st.markdown(f"EOL: {'Yes' if selected_check['is_eol'] == 1 else 'No'}")
+        st.markdown(f"Bridging: {'Yes' if selected_check['is_bridging_task'] == 1 else 'No'}")
 
 st.markdown("---")
 
@@ -103,49 +111,52 @@ has_planned = pd.notna(selected_check['planned_parts_count'])
 if has_consumption and has_planned:
     st.markdown("### Material Analysis: Planned vs Consumed")
 
-    # KPI cards
-    col1, col2, col3, col4 = st.columns(4)
+    with st.container(border=True):
+        # KPI cards
+        col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.metric(
-            "Planned Parts",
-            f"{int(selected_check['planned_parts_count'])}"
-        )
+        with col1:
+            st.metric(
+                "Planned Parts",
+                f"{int(selected_check['planned_parts_count'])}"
+            )
 
-    with col2:
-        st.metric(
-            "Consumed Parts",
-            f"{int(selected_check['consumed_parts_count'])}",
-            delta=f"{int(selected_check['parts_variance'])}" if pd.notna(selected_check['parts_variance']) else None
-        )
+        with col2:
+            st.metric(
+                "Consumed Parts",
+                f"{int(selected_check['consumed_parts_count'])}",
+                delta=f"{int(selected_check['parts_variance'])}" if pd.notna(selected_check['parts_variance']) else None
+            )
 
-    with col3:
-        st.metric(
-            "Planned Cost",
-            f"€{selected_check['planned_cost']:,.0f}"
-        )
+        with col3:
+            st.metric(
+                "Planned Cost",
+                format_currency(selected_check['planned_cost'])
+            )
 
-    with col4:
-        st.metric(
-            "Consumed Cost",
-            f"€{selected_check['consumed_cost']:,.0f}",
-            delta=f"€{selected_check['cost_variance']:,.0f}" if pd.notna(selected_check['cost_variance']) else None
-        )
+        with col4:
+            st.metric(
+                "Consumed Cost",
+                format_currency(selected_check['consumed_cost']),
+                delta=format_currency(selected_check['cost_variance']) if pd.notna(selected_check['cost_variance']) else None
+            )
 
-    # Accuracy metrics
-    col1, col2 = st.columns(2)
+        st.divider()
 
-    with col1:
-        if pd.notna(selected_check['planning_accuracy']):
-            accuracy = selected_check['planning_accuracy']
-            accuracy_color = "green" if accuracy >= 80 else "orange" if accuracy >= 60 else "red"
-            st.markdown(f"**Planning Accuracy:** <span style='color:{accuracy_color}; font-size:24px;'>{accuracy:.1f}%</span>", unsafe_allow_html=True)
+        # Accuracy metrics
+        col1, col2 = st.columns(2)
 
-    with col2:
-        if pd.notna(selected_check['cost_variance']):
-            variance_pct = (selected_check['cost_variance'] / selected_check['planned_cost'] * 100) if selected_check['planned_cost'] > 0 else 0
-            variance_color = "green" if abs(variance_pct) < 10 else "orange" if abs(variance_pct) < 20 else "red"
-            st.markdown(f"**Cost Variance:** <span style='color:{variance_color}; font-size:24px;'>{variance_pct:.1f}%</span>", unsafe_allow_html=True)
+        with col1:
+            if pd.notna(selected_check['planning_accuracy']):
+                accuracy = selected_check['planning_accuracy']
+                accuracy_color = "green" if accuracy >= 80 else "orange" if accuracy >= 60 else "red"
+                st.markdown(f"**Planning Accuracy:** <span style='color:{accuracy_color}; font-size:24px;'>{accuracy:.1f}%</span>", unsafe_allow_html=True)
+
+        with col2:
+            if pd.notna(selected_check['cost_variance']):
+                variance_pct = (selected_check['cost_variance'] / selected_check['planned_cost'] * 100) if selected_check['planned_cost'] > 0 else 0
+                variance_color = "green" if abs(variance_pct) < 10 else "orange" if abs(variance_pct) < 20 else "red"
+                st.markdown(f"**Cost Variance:** <span style='color:{variance_color}; font-size:24px;'>{variance_pct:.1f}%</span>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -184,25 +195,27 @@ elif has_planned:
     st.markdown("### Planned Material")
     st.info("Consumption data not available for this C-check")
 
-    col1, col2 = st.columns(2)
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
 
-    with col1:
-        st.metric("Planned Parts", f"{int(selected_check['planned_parts_count'])}")
+        with col1:
+            st.metric("Planned Parts", f"{int(selected_check['planned_parts_count'])}")
 
-    with col2:
-        st.metric("Planned Cost", f"€{selected_check['planned_cost']:,.0f}")
+        with col2:
+            st.metric("Planned Cost", format_currency(selected_check['planned_cost']))
 
 elif has_consumption:
     st.markdown("### Consumed Material")
     st.info("Planned material data not available for this C-check")
 
-    col1, col2 = st.columns(2)
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
 
-    with col1:
-        st.metric("Consumed Parts", f"{int(selected_check['consumed_parts_count'])}")
+        with col1:
+            st.metric("Consumed Parts", f"{int(selected_check['consumed_parts_count'])}")
 
-    with col2:
-        st.metric("Consumed Cost", f"€{selected_check['consumed_cost']:,.0f}")
+        with col2:
+            st.metric("Consumed Cost", format_currency(selected_check['consumed_cost']))
 
 else:
     st.warning("No material data (planned or consumed) available for this C-check")

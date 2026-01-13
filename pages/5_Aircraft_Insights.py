@@ -19,8 +19,9 @@ if not sys.warnoptions:
 warnings.filterwarnings('ignore')
 
 # Import data loader
-from utils.data_loader import get_master_view, load_consumption_detailed
+from utils.data_loader import get_master_view, load_consumption_detailed, is_data_uploaded, show_upload_required
 from utils.plotly_utils import hide_warnings_css
+from utils import format_currency
 
 # Hide warnings with CSS
 hide_warnings_css()
@@ -28,6 +29,10 @@ hide_warnings_css()
 # Page config
 st.title("Aircraft Insights")
 st.markdown("Aircraft type-specific material analysis")
+
+# Check if data is uploaded
+if not is_data_uploaded():
+    show_upload_required()
 
 # Load data
 with st.spinner("Loading data..."):
@@ -53,65 +58,66 @@ ac_data = c_checks[c_checks['ac_typ'] == selected_ac_type].copy()
 # Aircraft Type Summary
 st.markdown(f"### {selected_ac_type} Summary")
 
-col1, col2, col3, col4 = st.columns(4)
+with st.container(border=True):
+    col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    st.metric("Total C-Checks", len(ac_data))
+    with col1:
+        st.metric("Total C-Checks", len(ac_data))
 
-with col2:
-    with_consumption = ac_data['consumed_parts_count'].notna().sum()
-    st.metric(
-        "With Consumption Data",
-        with_consumption,
-        delta=f"{with_consumption/len(ac_data)*100:.1f}%"
-    )
+    with col2:
+        with_consumption = ac_data['consumed_parts_count'].notna().sum()
+        st.metric(
+            "With Consumption Data",
+            with_consumption,
+            delta=f"{with_consumption/len(ac_data)*100:.1f}%"
+        )
 
-with col3:
-    avg_util = ac_data['aircraft_hours'].mean()
-    if pd.notna(avg_util):
-        st.metric("Avg Aircraft Hours", f"{avg_util:,.0f}")
-    else:
-        st.metric("Avg Aircraft Hours", "N/A")
+    with col3:
+        avg_util = ac_data['aircraft_hours'].mean()
+        if pd.notna(avg_util):
+            st.metric("Avg Aircraft Hours", f"{avg_util:,.0f}")
+        else:
+            st.metric("Avg Aircraft Hours", "N/A")
 
-with col4:
-    avg_cycles = ac_data['aircraft_cycles'].mean()
-    if pd.notna(avg_cycles):
-        st.metric("Avg Aircraft Cycles", f"{avg_cycles:,.0f}")
-    else:
-        st.metric("Avg Aircraft Cycles", "N/A")
+    with col4:
+        avg_cycles = ac_data['aircraft_cycles'].mean()
+        if pd.notna(avg_cycles):
+            st.metric("Avg Aircraft Cycles", f"{avg_cycles:,.0f}")
+        else:
+            st.metric("Avg Aircraft Cycles", "N/A")
 
-st.markdown("---")
+    st.divider()
 
-# Additional metrics
-col1, col2, col3, col4 = st.columns(4)
+    # Additional metrics
+    col1, col2, col3, col4 = st.columns(4)
 
-with col1:
-    avg_cost = ac_data['consumed_cost'].mean()
-    if pd.notna(avg_cost):
-        st.metric("Avg Material Cost", f"€{avg_cost:,.0f}")
-    else:
-        st.metric("Avg Material Cost", "N/A")
+    with col1:
+        avg_cost = ac_data['consumed_cost'].mean()
+        if pd.notna(avg_cost):
+            st.metric("Avg Material Cost", format_currency(avg_cost))
+        else:
+            st.metric("Avg Material Cost", "N/A")
 
-with col2:
-    avg_parts = ac_data['consumed_parts_count'].mean()
-    if pd.notna(avg_parts):
-        st.metric("Avg Parts per C-Check", f"{avg_parts:.0f}")
-    else:
-        st.metric("Avg Parts per C-Check", "N/A")
+    with col2:
+        avg_parts = ac_data['consumed_parts_count'].mean()
+        if pd.notna(avg_parts):
+            st.metric("Avg Parts per C-Check", f"{avg_parts:.0f}")
+        else:
+            st.metric("Avg Parts per C-Check", "N/A")
 
-with col3:
-    avg_duration = ac_data['duration_days'].mean()
-    if pd.notna(avg_duration):
-        st.metric("Avg Duration", f"{avg_duration:.1f} days")
-    else:
-        st.metric("Avg Duration", "N/A")
+    with col3:
+        avg_duration = ac_data['duration_days'].mean()
+        if pd.notna(avg_duration):
+            st.metric("Avg Duration", f"{avg_duration:.1f} days")
+        else:
+            st.metric("Avg Duration", "N/A")
 
-with col4:
-    avg_accuracy = ac_data['planning_accuracy'].mean()
-    if pd.notna(avg_accuracy):
-        st.metric("Avg Planning Accuracy", f"{avg_accuracy:.1f}%")
-    else:
-        st.metric("Avg Planning Accuracy", "N/A")
+    with col4:
+        avg_accuracy = ac_data['planning_accuracy'].mean()
+        if pd.notna(avg_accuracy):
+            st.metric("Avg Planning Accuracy", f"{avg_accuracy:.1f}%")
+        else:
+            st.metric("Avg Planning Accuracy", "N/A")
 
 st.markdown("---")
 
