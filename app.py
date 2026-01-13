@@ -62,15 +62,15 @@ from utils.data_loader import get_data_completeness, get_consumption_by_category
 
 # Check if data is uploaded
 if not is_data_uploaded():
-    st.warning("Geen data beschikbaar. Upload eerst alle vereiste bestanden.")
+    st.warning("No data available. Please upload all required files first.")
 
     missing = get_missing_uploads()
     if missing:
-        st.markdown("**Ontbrekende bestanden:**")
+        st.markdown("**Missing files:**")
         for name in missing:
             st.markdown(f"- {name}")
 
-    st.info("Ga naar de **Data Upload** pagina in de sidebar om de bestanden te uploaden.")
+    st.info("Go to the **Data Upload** page in the sidebar to upload the files.")
     st.stop()
 
 completeness = get_data_completeness()

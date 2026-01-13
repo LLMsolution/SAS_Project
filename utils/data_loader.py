@@ -36,11 +36,11 @@ def get_missing_uploads():
 
 def show_upload_required():
     """Show message that data upload is required"""
-    st.error("Data niet beschikbaar")
-    st.markdown("Upload eerst alle vereiste bestanden op de **Data Upload** pagina.")
+    st.error("Data not available")
+    st.markdown("Please upload all required files on the **Data Upload** page first.")
     missing = get_missing_uploads()
     if missing:
-        st.markdown("**Ontbrekende bestanden:**")
+        st.markdown("**Missing files:**")
         for name in missing:
             st.markdown(f"- {name}")
     st.stop()

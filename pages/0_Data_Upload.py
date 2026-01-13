@@ -19,32 +19,32 @@ apply_sas_styling()
 
 # Page config
 st.title("Data Upload")
-st.markdown("Upload de 4 vereiste Excel bestanden in één keer")
+st.markdown("Upload all 4 required Excel files at once")
 
 # Define required files and their columns
 REQUIRED_FILES = {
     'workpacks': {
         'name': 'Maintenance Workpacks',
-        'description': 'C-checks, EOL en bridging tasks',
+        'description': 'C-checks, EOL and bridging tasks',
         'required_columns': ['wpno_i', 'wpno', 'ac_registr', 'ac_typ', 'station',
                             'start_date', 'end_date', 'is_c_check'],
         'session_key': 'uploaded_workpacks'
     },
     'utilization': {
         'name': 'Aircraft Utilization',
-        'description': 'Vliegtuig uren en cycles',
+        'description': 'Aircraft hours and cycles',
         'required_columns': ['ac_registr', 'date', 'tah', 'tac'],
         'session_key': 'uploaded_utilization'
     },
     'consumption': {
         'name': 'Material Consumption',
-        'description': 'Werkelijke materiaalconsumptie',
+        'description': 'Actual material consumption',
         'required_columns': ['partno', 'qty', 'average_price', 'del_date', 'station', 'vm'],
         'session_key': 'uploaded_consumption'
     },
     'planned': {
         'name': 'Planned Material',
-        'description': 'Geplande materialen per workpack',
+        'description': 'Planned materials per workpack',
         'required_columns': ['wpno_i', 'partno', 'qty', 'average_price'],
         'session_key': 'uploaded_planned'
     }
@@ -105,18 +105,18 @@ for i, (key, config) in enumerate(REQUIRED_FILES.items()):
             st.error(f"{config['name']}")
 
 if all_uploaded:
-    st.success("Alle bestanden zijn geupload. Je kunt nu de andere pagina's gebruiken.")
+    st.success("All files have been uploaded. You can now use the other pages.")
 else:
-    st.warning("Upload alle 4 bestanden om de applicatie te gebruiken.")
+    st.warning("Upload all 4 files to use the application.")
 
 st.markdown("---")
 
 # Single multi-file uploader
-st.markdown("### Upload Bestanden")
-st.markdown("Selecteer alle 4 Excel bestanden tegelijk. Het systeem detecteert automatisch welk bestand wat is.")
+st.markdown("### Upload Files")
+st.markdown("Select all 4 Excel files at once. The system automatically detects which file is which.")
 
 uploaded_files = st.file_uploader(
-    "Selecteer 4 Excel bestanden (.xlsx)",
+    "Select 4 Excel files (.xlsx)",
     type=['xlsx'],
     accept_multiple_files=True,
     key="multi_uploader"
@@ -124,7 +124,7 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
     # Process all files
-    with st.spinner("Bestanden worden verwerkt..."):
+    with st.spinner("Processing files..."):
         results = []
         files_to_store = {}
 
@@ -137,7 +137,7 @@ if uploaded_files:
                     results.append({
                         'file': uploaded_file.name,
                         'status': 'error',
-                        'message': 'Kon bestandstype niet detecteren op basis van kolommen'
+                        'message': 'Could not detect file type based on columns'
                     })
                 else:
                     config = REQUIRED_FILES[file_type]
@@ -147,25 +147,25 @@ if uploaded_files:
                         results.append({
                             'file': uploaded_file.name,
                             'status': 'error',
-                            'message': f"Ontbrekende kolommen voor {config['name']}: {', '.join(missing)}"
+                            'message': f"Missing columns for {config['name']}: {', '.join(missing)}"
                         })
                     else:
                         files_to_store[config['session_key']] = df
                         results.append({
                             'file': uploaded_file.name,
                             'status': 'success',
-                            'message': f"Herkend als: {config['name']} ({len(df)} rijen)"
+                            'message': f"Recognized as: {config['name']} ({len(df)} rows)"
                         })
 
             except Exception as e:
                 results.append({
                     'file': uploaded_file.name,
                     'status': 'error',
-                    'message': f"Fout bij laden: {str(e)}"
+                    'message': f"Error loading: {str(e)}"
                 })
 
         # Show results
-        st.markdown("#### Resultaten:")
+        st.markdown("#### Results:")
         for result in results:
             if result['status'] == 'success':
                 st.success(f"**{result['file']}**: {result['message']}")
@@ -184,20 +184,20 @@ if uploaded_files:
 
 # Show what files are expected
 st.markdown("---")
-st.markdown("### Verwachte Bestanden")
+st.markdown("### Expected Files")
 
 for key, config in REQUIRED_FILES.items():
     with st.expander(f"{config['name']} - {config['description']}"):
-        st.markdown("**Vereiste kolommen:**")
+        st.markdown("**Required columns:**")
         st.code(", ".join(config['required_columns']))
 
 # Clear all data button
 st.markdown("---")
-if st.button("Wis alle data", type="secondary"):
+if st.button("Clear all data", type="secondary"):
     for config in REQUIRED_FILES.values():
         if config['session_key'] in st.session_state:
             del st.session_state[config['session_key']]
     st.rerun()
 
 st.markdown("---")
-st.markdown("*Na het uploaden van alle bestanden, gebruik de sidebar om naar de analyse pagina's te navigeren.*")
+st.markdown("*After uploading all files, use the sidebar to navigate to the analysis pages.*")
