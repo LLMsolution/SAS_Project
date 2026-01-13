@@ -27,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for SAS branding
+# Custom CSS for SAS branding (supports both light and dark mode)
 st.markdown("""
 <style>
     /* SAS Blue primary color */
@@ -36,14 +36,52 @@ st.markdown("""
         color: white;
     }
 
-    /* Headers with SAS brand color */
-    h1, h2, h3 {
-        color: #2B3087;
+    /* Headers with SAS brand color - light mode */
+    @media (prefers-color-scheme: light) {
+        h1, h2, h3 {
+            color: #2B3087;
+        }
     }
 
-    /* Sidebar styling */
+    /* Headers - dark mode: keep readable */
+    @media (prefers-color-scheme: dark) {
+        h1, h2, h3 {
+            color: #5B6BC0;
+        }
+    }
+
+    /* Sidebar styling - light mode */
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        background-color: #2B3087;
+    }
+
     [data-testid="stSidebar"] {
-        background-color: #F0F2F6;
+        background-color: #2B3087;
+    }
+
+    /* Sidebar text should be white on dark blue background */
+    [data-testid="stSidebar"] * {
+        color: white !important;
+    }
+
+    /* Sidebar navigation links */
+    [data-testid="stSidebar"] a {
+        color: white !important;
+    }
+
+    [data-testid="stSidebar"] a:hover {
+        color: #FFA500 !important;
+    }
+
+    /* Sidebar page links */
+    [data-testid="stSidebarNav"] a span {
+        color: white !important;
+    }
+
+    /* Active page in sidebar */
+    [data-testid="stSidebarNav"] [aria-selected="true"] span {
+        color: #FFA500 !important;
+        font-weight: bold;
     }
 
     /* Metric styling */
